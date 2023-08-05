@@ -57,4 +57,36 @@ export class StellarService {
       console.error('An error has occurred', error);
     }
   }
+
+  async sendPaymentTransaction(): Promise<void> {
+    try {
+      await this.server.loadAccount(this.destinationId);
+
+      const sourceAccount = await this.server.loadAccount(
+        this.sourceKeys.publicKey(),
+      );
+
+      const transaction = new StellarSdk.TransactionBuilder(sourceAccount, {
+        fee: StellarSdk.BASE_FEE,
+        networkPassphrase: StellarSdk.Networks.TESTNET,
+      })
+        .addOperation(
+          StellarSdk.Operation.payment({
+            destination: this.destinationId,
+            asset: StellarSdk.Asset.native(),
+            amount: '10',
+          }),
+        )
+        .addMemo(StellarSdk.Memo.text('Test Transaction'))
+        .setTimeout(180)
+        .build();
+
+      transaction.sign(this.sourceKeys);
+
+      const result = await this.server.submitTransaction(transaction);
+      console.log('Success! Results:', result);
+    } catch (error) {
+      console.error('Something went wrong!', error);
+    }
+  }
 }
